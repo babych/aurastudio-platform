@@ -12,14 +12,16 @@ export function isUserAdmin(userId, username, email, env) {
   if (!userId) return false;
   const adminIds = ["tg_1359272262", "google_112903967526802503571", "test_user"];
   const adminUsernames = ["lame618", "memory1024", "dmytrobbch"];
+  const adminEmails = ["dmytro.babych@gmail.com", "memory1024@gmail.com", "dmytrobbch@gmail.com"];
   const cleanUid = String(userId).toLowerCase();
   const cleanUname = String(username || "").toLowerCase();
   const cleanEmail = String(email || "").toLowerCase();
 
   if (adminIds.some(id => cleanUid.includes(id.toLowerCase()))) return true;
   if (adminUsernames.some(u => cleanUname === u || cleanUid.includes(u))) return true;
-  if (cleanEmail && (cleanEmail.includes("babych") || cleanEmail.includes("memory1024"))) return true;
+  if (cleanEmail && adminEmails.includes(cleanEmail)) return true;
   if (env && env.ADMIN_USER_IDS && env.ADMIN_USER_IDS.split(",").some(id => cleanUid.includes(id.trim().toLowerCase()))) return true;
+  if (env && env.ADMIN_EMAILS && env.ADMIN_EMAILS.split(",").map(e => e.trim().toLowerCase()).includes(cleanEmail)) return true;
   return false;
 }
 

@@ -91,15 +91,9 @@ export async function handleAuthGoogle(request, env, url) {
     }
 
     if (!googleUser || !googleUser.sub) {
-      try {
-        const base64Url = credential.split('.')[1];
-        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-        const jsonPayload = decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join(''));
-        googleUser = JSON.parse(jsonPayload);
-      } catch (e) {
-        return jsonResponse({ status: "error", message: "Invalid Google credential format" }, 400);
-      }
+      return jsonResponse({ status: "error", message: "Google authentication failed: unable to verify credential signature." }, 401);
     }
+
 
     const userId = `google_${googleUser.sub}`;
     const email = googleUser.email ? googleUser.email.toLowerCase() : null;

@@ -322,6 +322,14 @@ export async function handleTelegramDebug(request, env, url) {
 
 export async function handleTelegramWebhook(request, env, ctx, url) {
   try {
+    const webhookSecret = env.TELEGRAM_WEBHOOK_SECRET;
+    if (webhookSecret) {
+      const receivedSecret = request.headers.get("X-Telegram-Bot-Api-Secret-Token");
+      if (!receivedSecret || receivedSecret !== webhookSecret) {
+        return jsonResponse({ status: "error", message: "Unauthorized webhook request" }, 401);
+      }
+    }
+
     const update = await request.json();
     const botToken = env.AURA_BOT_TOKEN || env.TELEGRAM_BOT_TOKEN;
     if (!botToken) throw new Error("Bot token secret not configured");
