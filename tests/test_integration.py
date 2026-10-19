@@ -21,7 +21,7 @@ PROD_API_URL = os.environ.get("AURASTUDIO_API_URL", "https://aurastudio-ai.memor
 ADMIN_KEY = os.environ.get("ADMIN_KEY", "aurastudio-admin-2026")
 MODAL_GPU_URL = os.environ.get(
     "MODAL_GPU_URL",
-    "https://memory1024--qwen-image-edit-fp8-service-qweneditorfp8-api-edit.modal.run"
+    "https://memory1024--qwen-image-edit-service-qweneditor-api-edit.modal.run"
 )
 
 def get_test_portrait_base64() -> str:

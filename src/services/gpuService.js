@@ -27,28 +27,44 @@ export async function callModalWithFallback(endpoints, payload) {
   throw new Error(`GPU cluster temporarily unavailable: ${errors.join(" | ") || "all endpoints unreachable"}`);
 }
 
-export async function submitModalTask(asyncEndpoints, payload, authKey = null) {
+export async function submitModalTask(asyncEndpoints, payload, authKey = null, maxRetries = 2) {
   let errors = [];
   const reqBody = authKey ? { ...payload, auth_key: authKey } : payload;
+  
   for (const ep of asyncEndpoints) {
-    try {
-      const res = await fetch(ep.submit, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(reqBody),
-        signal: AbortSignal.timeout(30000) // 30s: allows first-request container scaling to accept spawn()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.status === "queued" || data.task_id) {
-          return { ...data, statusEndpoint: ep.status };
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          // Cloudflare sleepiness / cold container wake-up backoff
+          await new Promise(res => setTimeout(res, attempt * 2000));
         }
-      } else {
-        const txt = await res.text();
-        errors.push(`Status ${res.status}: ${txt.slice(0, 100)}`);
+
+        const res = await fetch(ep.submit, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(reqBody),
+          signal: AbortSignal.timeout(45000) // 45s: allows sleeping container to wake, scale up, and accept spawn()
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === "queued" || data.task_id) {
+            return { ...data, statusEndpoint: ep.status };
+          }
+          errors.push(data.message || "Dispatch queue rejected");
+        } else {
+          const txt = await res.text();
+          errors.push(`Status ${res.status}: ${txt.slice(0, 100)}`);
+          // If 5xx or 503 Service Unavailable (e.g. cold start queue full), allow retry
+          if (res.status !== 503 && res.status !== 502 && res.status !== 504 && res.status !== 500) {
+            break;
+          }
+        }
+      } catch (e) {
+        const isTimeout = e.name === "TimeoutError" || (e.message && e.message.includes("timeout"));
+        errors.push(isTimeout ? `Timeout on attempt ${attempt + 1} (>45s)` : e.message);
+        // Continue to next retry attempt if timeout or transient network drop
       }
-    } catch (e) {
-      errors.push(e.message);
     }
   }
   throw new Error(`Failed to dispatch task to GPU cluster: ${errors.join(" | ")}`);

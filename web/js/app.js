@@ -648,24 +648,57 @@
                 if (typeof qData.is_warm === 'boolean') activeTask.isWarm = qData.is_warm;
             }).catch(() => {});
 
-            // 10. Dispatch task to Cloudflare Worker & GPU Cluster
+            // 10. Dispatch task to Cloudflare Worker & GPU Cluster (with automatic retry for cold starts / worker wakeup)
             try {
                 const effectiveUserId = (currentUser && currentUser.id) ? currentUser.id : getGuestUserId();
-                const res = await fetch('/api/generate', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        task_id: taskId,
-                        image_base64: inputPhotoBase64 || null,
-                        prompt: prompt,
-                        preset_id: selectedPresetId || (hasPhoto ? 'custom' : 'text_to_image'),
-                        user_id: effectiveUserId,
-                        user_email: currentUser ? currentUser.email : null,
-                        user_name: currentUser ? currentUser.name : 'Guest User'
-                    })
-                });
+                let res = null;
+                let data = null;
+                const maxClientRetries = 2;
 
-                const data = await res.json();
+                for (let attempt = 0; attempt <= maxClientRetries; attempt++) {
+                    try {
+                        if (attempt > 0) {
+                            // Backoff delay for sleeping worker / GPU container spin-up
+                            await new Promise(r => setTimeout(r, attempt * 2500));
+                        }
+
+                        res = await fetch('/api/generate', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                task_id: taskId,
+                                image_base64: inputPhotoBase64 || null,
+                                prompt: prompt,
+                                preset_id: selectedPresetId || (hasPhoto ? 'custom' : 'text_to_image'),
+                                user_id: effectiveUserId,
+                                user_email: currentUser ? currentUser.email : null,
+                                user_name: currentUser ? currentUser.name : 'Guest User'
+                            })
+                        });
+
+                        data = await res.json();
+
+                        // If response was 500/504 with timeout / abort error, retry
+                        if (!res.ok && attempt < maxClientRetries && (res.status === 500 || res.status === 502 || res.status === 503 || res.status === 504)) {
+                            const errMsg = (data && data.message) ? data.message.toLowerCase() : '';
+                            if (errMsg.includes('timeout') || errMsg.includes('aborted') || errMsg.includes('cluster') || errMsg.includes('dispatch')) {
+                                console.warn(`[!] /api/generate dispatch timed out on attempt ${attempt + 1}, retrying...`);
+                                continue;
+                            }
+                        }
+                        break;
+                    } catch (netErr) {
+                        if (attempt < maxClientRetries) {
+                            console.warn(`[!] Network error on dispatch attempt ${attempt + 1}, retrying:`, netErr);
+                            continue;
+                        }
+                        throw netErr;
+                    }
+                }
+
+                if (!data) {
+                    throw new Error("No response received from generation server");
+                }
 
                 if (data.status === 'queued' || data.status === 'processing') {
                     // Task accepted and dispatched to Modal GPU in background. Polling loop takes full control!
