@@ -55,8 +55,9 @@ export async function submitModalTask(asyncEndpoints, payload, authKey = null, m
         } else {
           const txt = await res.text();
           errors.push(`Status ${res.status}: ${txt.slice(0, 100)}`);
-          // If 5xx or 503 Service Unavailable (e.g. cold start queue full), allow retry
-          if (res.status !== 503 && res.status !== 502 && res.status !== 504 && res.status !== 500) {
+          // If 408 (queue timeout / busy container), 429 (rate limit), or 5xx, allow retry with backoff
+          const isRetryable = res.status === 408 || res.status === 429 || (res.status >= 500 && res.status <= 504);
+          if (!isRetryable) {
             break;
           }
         }

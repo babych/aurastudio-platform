@@ -678,11 +678,11 @@
 
                         data = await res.json();
 
-                        // If response was 500/504 with timeout / abort error, retry
-                        if (!res.ok && attempt < maxClientRetries && (res.status === 500 || res.status === 502 || res.status === 503 || res.status === 504)) {
+                        // If response was 408/429/500/502/503/504 with timeout / abort / busy error, retry
+                        if (!res.ok && attempt < maxClientRetries && (res.status === 408 || res.status === 429 || (res.status >= 500 && res.status <= 504))) {
                             const errMsg = (data && data.message) ? data.message.toLowerCase() : '';
-                            if (errMsg.includes('timeout') || errMsg.includes('aborted') || errMsg.includes('cluster') || errMsg.includes('dispatch')) {
-                                console.warn(`[!] /api/generate dispatch timed out on attempt ${attempt + 1}, retrying...`);
+                            if (errMsg.includes('timeout') || errMsg.includes('aborted') || errMsg.includes('cluster') || errMsg.includes('dispatch') || errMsg.includes('408') || errMsg.includes('missing request')) {
+                                console.warn(`[!] /api/generate dispatch timed out/busy on attempt ${attempt + 1}, retrying...`);
                                 continue;
                             }
                         }
@@ -846,12 +846,30 @@
             return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, ' ');
         }
 
-        function reusePrompt(promptText) {
+        function reusePrompt(promptText, inputImage = null) {
             const input = document.getElementById('mainPromptInput');
             if (input) {
                 input.value = promptText;
                 input.focus();
-                document.getElementById('photoStudioBox').scrollIntoView({ behavior: 'smooth' });
+            }
+
+            // Restore attached image if one was provided
+            if (inputImage && inputImage !== 'uploaded_image' && !inputImage.startsWith('text_to_image')) {
+                attachedFileBase64 = inputImage;
+                const thumb = document.getElementById('attachedThumbImg');
+                const box = document.getElementById('attachedImagePreviewBox');
+                const fileName = document.getElementById('attachedFileName');
+                if (thumb) thumb.src = inputImage;
+                if (fileName) fileName.innerText = 'retry_photo.jpg';
+                if (box) {
+                    box.classList.remove('hidden');
+                    box.classList.add('flex');
+                }
+            }
+
+            const studio = document.getElementById('photoStudioBox');
+            if (studio) {
+                studio.scrollIntoView({ behavior: 'smooth' });
             }
         }
 
@@ -936,7 +954,7 @@
                                 </div>
                                 <div class="flex items-center gap-2">
                                     ${durText ? `<span class="text-[10px] text-slate-400 font-mono">${durText}</span>` : ''}
-                                    <button onclick="reusePrompt('${escapeJs(g.prompt)}')" class="px-2 py-1 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 text-xs font-medium transition flex items-center gap-1 border border-slate-200" title="Remix Prompt">
+                                    <button onclick="reusePrompt('${escapeJs(g.prompt)}', ${inSrc ? `'${escapeJs(inSrc)}'` : 'null'})" class="px-2 py-1 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 text-xs font-medium transition flex items-center gap-1 border border-slate-200" title="Remix Prompt">
                                         <i data-lucide="corner-up-left" class="w-3 h-3"></i>
                                         <span class="hidden sm:inline">Remix</span>
                                     </button>
@@ -1093,7 +1111,7 @@
                                     <p class="text-xs text-red-700 font-medium leading-relaxed">${escapeHtml(errorMsg || 'GPU request timed out or was interrupted.')}</p>
                                 </div>
                             </div>
-                            <button onclick="reusePrompt('${escapeJs(activeTask.prompt)}')" class="px-3 py-1.5 rounded-xl bg-white hover:bg-red-100 text-red-700 text-xs font-bold transition flex items-center gap-1.5 shrink-0 border border-red-300 shadow-sm" title="Try Again">
+                            <button onclick="reusePrompt('${escapeJs(activeTask.prompt)}', activeTask.inputImage ? '${escapeJs(activeTask.inputImage)}' : null)" class="px-3 py-1.5 rounded-xl bg-white hover:bg-red-100 text-red-700 text-xs font-bold transition flex items-center gap-1.5 shrink-0 border border-red-300 shadow-sm" title="Try Again">
                                 <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
                                 <span>Try Again</span>
                             </button>
@@ -1152,7 +1170,7 @@
                                 </div>
                                 <div class="flex items-center gap-2">
                                     ${durText ? `<span class="text-[10px] text-slate-400 font-mono">${durText}</span>` : ''}
-                                    <button onclick="reusePrompt('${escapeJs(activeTask.prompt)}')" class="px-2 py-1 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 text-xs font-medium transition flex items-center gap-1 border border-slate-200" title="Remix Prompt">
+                                    <button onclick="reusePrompt('${escapeJs(activeTask.prompt)}', activeTask.inputImage ? '${escapeJs(activeTask.inputImage)}' : null)" class="px-2 py-1 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-500 text-xs font-medium transition flex items-center gap-1 border border-slate-200" title="Remix Prompt">
                                         <i data-lucide="corner-up-left" class="w-3 h-3"></i>
                                         <span class="hidden sm:inline">Remix</span>
                                     </button>
