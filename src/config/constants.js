@@ -42,8 +42,12 @@ export const GLOBAL_PRESETS = {
   retro90s: "change style and attire to unhinged 90s vintage clothing, nostalgic 90s disposable camera aesthetic, flash photography"
 };
 
-// Protected Standards (Rule 6: Mandatory Golden Identity Retention Formula)
-export const IDENTITY_ANCHOR_SUFFIX = "keep exact same person, 100% exact original face, exact same camera distance, preserve full original portrait framing from head to torso, no cropping, no zoom-in, no macro zoom, sharp focused eyes and gaze, exact original lips and expression, preserve original lighting, exact original skin color and tone, authentic natural micro skin pores, gentle subsurface scattering, clean jawline and neck, razor-sharp focused eyes with natural catchlights, raw 35mm dslr portrait photography, seamless photorealistic integration, no text";
+// Protected Standards (Rule 6: Mandatory Golden Identity Retention Formula & Spatial Lock)
+export const IDENTITY_ANCHOR_SUFFIX = "keep exact same person, 100% exact original face, exact same camera framing and distance, lock head position at top of frame, do not shift camera down, do not zoom in, preserve full head from crown to chest, no cropping, no zoom-in, no macro zoom, sharp focused eyes and gaze, exact original lips and expression, preserve original lighting, exact original skin color and tone, authentic natural micro skin pores, gentle subsurface scattering, clean jawline and neck, razor-sharp focused eyes with natural catchlights, raw 35mm dslr portrait photography, seamless photorealistic integration, no text";
+
+export const PHOTO_NEGATIVE_PROMPT = "cut off head, cut off hair, top of head cut off, cropped forehead, head out of frame, shifted camera, zoomed in, macro crop, cropped, close-up crop, out of frame, cut off face, plastic skin, airbrushed, wax, doll, cartoon, 3d render, blurry, painterly, soft focus, distorted eyes, neck smudges, black dots, stippling, pepper noise, artifacts, extra fingers, text, watermark, deformed anatomy, bad proportions, bad lighting, changed face, altered eyes, different identity";
+
+export const TEXT_TO_IMAGE_NEGATIVE_PROMPT = "blurry, low quality, distorted, bad anatomy, artifacts, malformed, deformed, extra limbs, text, watermark";
 
 export function anchorPromptForPhoto(promptText) {
   if (!promptText) return IDENTITY_ANCHOR_SUFFIX;

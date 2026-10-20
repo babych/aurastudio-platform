@@ -5,6 +5,8 @@ import {
   DEFAULT_BLANK_CANVAS_BASE64, 
   MODAL_PHOTO_ENDPOINTS, 
   MODAL_ASYNC_ENDPOINTS,
+  PHOTO_NEGATIVE_PROMPT,
+  TEXT_TO_IMAGE_NEGATIVE_PROMPT,
   anchorPromptForPhoto 
 } from "../config/constants.js";
 import { jsonResponse, logCriticalError } from "../utils/response.js";
@@ -137,8 +139,8 @@ export async function handleGenerate(request, env, ctx, url) {
       : anchorPromptForPhoto(prompt);
 
     const cleanNeg = isTextToImage
-      ? "blurry, low quality, distorted, bad anatomy, artifacts, malformed, deformed, text, watermark"
-      : "cropped, close-up crop, zoomed in, out of frame, cut off face, macro zoom, plastic skin, airbrushed, wax, doll, cartoon, 3d render, blurry, painterly, soft focus, distorted eyes, neck smudges, black dots, stippling, pepper noise, artifacts, extra fingers, text, watermark, deformed anatomy, bad proportions, bad lighting, changed face, altered eyes, different identity";
+      ? TEXT_TO_IMAGE_NEGATIVE_PROMPT
+      : PHOTO_NEGATIVE_PROMPT;
 
     const payload = {
       image_base64: effectiveInputBase64,

@@ -6,6 +6,8 @@ import {
   DEFAULT_BLANK_CANVAS_BASE64, 
   GLOBAL_PRESETS, 
   MODAL_PHOTO_ENDPOINTS, 
+  PHOTO_NEGATIVE_PROMPT, 
+  TEXT_TO_IMAGE_NEGATIVE_PROMPT, 
   anchorPromptForPhoto 
 } from "../config/constants.js";
 import { callModalWithFallback } from "../services/gpuService.js";
@@ -849,8 +851,8 @@ export async function handleTelegramWebhook(request, env, ctx, url) {
               : `candid 8k dslr photograph, ultra-detailed, cinematic soft lighting, realistic depth of field, photorealistic, ${text}`;
 
             const cleanNeg = hasPhoto
-              ? "plastic skin, airbrushed, wax, doll, cartoon, 3d render, blurry, painterly, soft focus, distorted eyes, neck smudges, black dots, stippling, pepper noise, artifacts, extra fingers, text, watermark, deformed anatomy, bad proportions, bad lighting, changed face, altered eyes, different identity"
-              : "blurry, low quality, distorted, bad anatomy, artifacts, malformed, extra limbs, text, watermark";
+              ? PHOTO_NEGATIVE_PROMPT
+              : TEXT_TO_IMAGE_NEGATIVE_PROMPT;
 
             const mData = await callModalWithFallback(MODAL_PHOTO_ENDPOINTS, {
               image_base64: effectivePhotoBase64,
