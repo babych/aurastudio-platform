@@ -18,7 +18,7 @@ import urllib.request
 import urllib.error
 
 PROD_API_URL = os.environ.get("AURASTUDIO_API_URL", "https://aurastudio-ai.memory1024.workers.dev")
-ADMIN_KEY = os.environ.get("ADMIN_KEY", "aurastudio-admin-2026")
+ADMIN_KEY = os.environ.get("ADMIN_KEY")
 MODAL_GPU_URL = os.environ.get(
     "MODAL_GPU_URL",
     "https://memory1024--qwen-image-edit-service-qweneditor-api-edit.modal.run"

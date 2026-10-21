@@ -42,9 +42,7 @@ export async function handleStats(request, env, url) {
         } catch (e) {
           console.error("Google token verification error in /api/stats:", e);
         }
-      } else if (cleanKey.startsWith("tg_")) {
-        isAuthorized = true;
-        authUserLabel = "Telegram Admin";
+      } else if (false) {
       } else if (cleanKey.startsWith("admin_")) {
         const targetUserId = cleanKey.replace("admin_", "");
         if (env.DB) {
