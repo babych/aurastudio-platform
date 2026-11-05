@@ -1,0 +1,7 @@
+[allowlist]
+description = "Global allowlist for benign test fixtures and sample placeholders"
+paths = [
+  '''package-lock.json''',
+  '''tests/''',
+  '''test/'''
+]

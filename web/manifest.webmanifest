@@ -1,0 +1,28 @@
+{
+  "name": "AuraStudio AI — Generative Photo Studio",
+  "short_name": "AuraStudio",
+  "description": "Magazine-grade portraits, LinkedIn headshots, and luxury styles in 30s with Qwen 2.5 DiT.",
+  "start_url": "/",
+  "id": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B0F19",
+  "theme_color": "#4F46E5",
+  "lang": "en",
+  "categories": ["photo", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/assets/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

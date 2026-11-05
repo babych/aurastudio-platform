@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="uk" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuraStudio AI — Cloudflare Visual Monitoring & Telemetry Dashboard</title>
+    <meta name="theme-color" content="#0B0F19">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" type="image/svg+xml" href="/assets/icon-192.svg">
+    <link rel="apple-touch-icon" href="/assets/icon-192.svg">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#8b5cf6',
+                            600: '#7c3aed',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Identity Services (GIS) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .glass-card {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen font-sans antialiased p-4 sm:p-8">
+
+    <div class="max-w-7xl mx-auto space-y-8">
+        <!-- Top Navigation / Header -->
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 glass-card rounded-2xl p-6">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
+                    <i data-lucide="activity" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight">AuraStudio Visual Telemetry</h1>
+                    <p class="text-xs text-gray-400">Хмарний моніторинг Cloudflare D1 + Modal Nvidia A10G (Serverless)</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="gpuStatus">Modal A10G: READY</span>
+                </div>
+                
+                <div id="adminUserBadge" class="hidden items-center gap-2 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-medium">
+                    <i data-lucide="shield-check" class="w-4 h-4 text-purple-400"></i>
+                    <span id="adminUserLabel">Admin</span>
+                </div>
+
+                <button onclick="fetchStats(true)" id="headerRefreshBtn" class="p-2 glass-card hover:bg-gray-800 rounded-xl text-gray-300 hover:text-white transition" title="Оновити дані">
+                    <i data-lucide="refresh-cw" id="headerRefreshIcon" class="w-4 h-4"></i>
+                </button>
+                <button onclick="lockDashboard()" class="p-2 glass-card hover:bg-red-500/20 text-gray-400 hover:text-red-400 rounded-xl transition" title="Вийти / Заблокувати">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 4 Key Authentic Metric Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Total Users -->
+            <div class="glass-card rounded-2xl p-6 space-y-2">
+                <div class="flex items-center justify-between text-gray-400">
+                    <span class="text-xs font-semibold uppercase tracking-wider">Користувачі</span>
+                    <i data-lucide="users" class="w-4 h-4 text-purple-400"></i>
+                </div>
+                <div class="text-3xl font-extrabold text-white" id="statUsers">0</div>
+                <p class="text-xs text-emerald-400 flex items-center gap-1">
+                    <i data-lucide="database" class="w-3.5 h-3.5"></i>
+                    <span>Всього в базі D1</span>
+                </p>
+            </div>
+
+            <!-- Total Generations -->
+            <div class="glass-card rounded-2xl p-6 space-y-2">
+                <div class="flex items-center justify-between text-gray-400">
+                    <span class="text-xs font-semibold uppercase tracking-wider">Успішних генерацій</span>
+                    <i data-lucide="sparkles" class="w-4 h-4 text-pink-400"></i>
+                </div>
+                <div class="text-3xl font-extrabold text-white" id="statGens">0</div>
+                <p class="text-xs text-emerald-400 flex items-center gap-1">
+                    <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                    <span>Статус: SUCCESS</span>
+                </p>
+            </div>
+
+            <!-- Errors (24h) -->
+            <div class="glass-card rounded-2xl p-6 space-y-2">
+                <div class="flex items-center justify-between text-gray-400">
+                    <span class="text-xs font-semibold uppercase tracking-wider">Помилок (24h)</span>
+                    <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+                </div>
+                <div class="text-3xl font-extrabold text-white" id="statErrors">0</div>
+                <p class="text-xs text-gray-400 flex items-center gap-1">
+                    <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
+                    <span id="statErrorsSub">Збої GPU / Telegram / API</span>
+                </p>
+            </div>
+
+            <!-- Avg Duration -->
+            <div class="glass-card rounded-2xl p-6 space-y-2">
+                <div class="flex items-center justify-between text-gray-400">
+                    <span class="text-xs font-semibold uppercase tracking-wider">Сер. швидкість GPU</span>
+                    <i data-lucide="clock" class="w-4 h-4 text-cyan-400"></i>
+                </div>
+                <div class="text-3xl font-extrabold text-white" id="statDuration">—</div>
+                <p class="text-xs text-cyan-400 flex items-center gap-1">
+                    <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+                    <span>Реальний час виконання</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Real-time Visual Task Journal with Input/Output Images & User Accounts -->
+        <div class="glass-card rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                        <i data-lucide="image" class="w-5 h-5 text-purple-400"></i>
+                        <span>Візуальний журнал завдань (Input / Output / User)</span>
+                    </h3>
+                    <p class="text-xs text-gray-400">Реальні фото користувачів та згенеровані результати з бази D1</p>
+                </div>
+                <span class="text-xs text-purple-400 font-medium px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20">Live Sync</span>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-gray-300">
+                    <thead class="text-xs uppercase bg-gray-900/60 text-gray-400 border-b border-gray-800">
+                        <tr>
+                            <th class="py-3 px-4">Користувач</th>
+                            <th class="py-3 px-4">Вхідне фото</th>
+                            <th class="py-3 px-4">Результат AI</th>
+                            <th class="py-3 px-4">Стиль / Промпт</th>
+                            <th class="py-3 px-4">Статус</th>
+                            <th class="py-3 px-4">Дата / Час GPU</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tasksTableBody" class="divide-y divide-gray-800/60">
+                        <tr>
+                            <td colspan="6" class="py-12 text-center text-gray-500">
+                                <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 text-gray-600"></i>
+                                <span>Завантаження даних моніторингу...</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Critical Error Logs -->
+        <div class="glass-card rounded-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="font-bold text-lg flex items-center gap-2">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 text-red-400"></i>
+                        <span>Критичні помилки системи (System Errors)</span>
+                        <span id="errorCountBadge" class="hidden text-xs font-semibold px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30">0</span>
+                    </h3>
+                    <p class="text-xs text-gray-400">Останні збої генерації, помилки парсингу Telegram та збої GPU з бази D1</p>
+                </div>
+                <button onclick="fetchStats(true)" class="text-xs text-gray-400 hover:text-white px-3 py-1.5 rounded-xl glass-card transition flex items-center gap-1.5">
+                    <i data-lucide="refresh-cw" id="refreshLogsIcon" class="w-3.5 h-3.5"></i> Оновити логи
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm text-gray-300">
+                    <thead class="text-xs uppercase bg-gray-900/60 text-gray-400 border-b border-gray-800">
+                        <tr>
+                            <th class="py-3 px-4">Час</th>
+                            <th class="py-3 px-4">Джерело / Контекст</th>
+                            <th class="py-3 px-4">Повідомлення про помилку</th>
+                            <th class="py-3 px-4">Користувач (ID)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="errorsTableBody" class="divide-y divide-gray-800/60">
+                        <tr>
+                            <td colspan="4" class="py-12 text-center text-gray-500">
+                                <i data-lucide="check-circle" class="w-8 h-8 mx-auto mb-2 text-emerald-500"></i>
+                                <span>Помилок немає! Все працює ідеально.</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Infrastructure Status -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="glass-card rounded-2xl p-5 space-y-2">
+                <div class="flex items-center gap-2 font-semibold text-sm">
+                    <i data-lucide="server" class="w-4 h-4 text-purple-400"></i>
+                    <span>Cloudflare Pages & Workers</span>
+                </div>
+                <p class="text-xs text-emerald-400 font-medium">● 100% Serverless Edge ($0/міс)</p>
+            </div>
+            <div class="glass-card rounded-2xl p-5 space-y-2">
+                <div class="flex items-center gap-2 font-semibold text-sm">
+                    <i data-lucide="database" class="w-4 h-4 text-purple-400"></i>
+                    <span>Cloudflare D1 Database</span>
+                </div>
+                <p class="text-xs text-emerald-400 font-medium">● Edge SQLite Global Replica ($0/міс)</p>
+            </div>
+            <div class="glass-card rounded-2xl p-5 space-y-2">
+                <div class="flex items-center gap-2 font-semibold text-sm">
+                    <i data-lucide="cpu" class="w-4 h-4 text-purple-400"></i>
+                    <span>Modal Nvidia A10G GPU</span>
+                </div>
+                <p class="text-xs text-emerald-400 font-medium">● Dynamic Auto-scaling on-demand</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image / Video Preview Modal -->
+    <div id="imageModal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden items-center justify-center p-4" onclick="closeImageModal()">
+        <div class="max-w-3xl w-full text-center space-y-3 relative" onclick="event.stopPropagation()">
+            <button onclick="closeImageModal()" class="absolute -top-10 right-0 text-gray-400 hover:text-white text-sm flex items-center gap-1">
+                <i data-lucide="x" class="w-5 h-5"></i> Закрити
+            </button>
+            <img id="modalImg" src="" class="max-h-[80vh] mx-auto rounded-2xl shadow-2xl border border-gray-800 hidden">
+            <video id="modalVideo" src="" controls autoplay loop class="max-h-[80vh] mx-auto rounded-2xl shadow-2xl border border-gray-800 hidden"></video>
+            <p id="modalCaption" class="text-xs text-gray-400"></p>
+        </div>
+    </div>
+
+    <!-- Admin Authentication Modal (1-Click Google OAuth & Telegram Login) -->
+    <div id="accessDeniedCard" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="glass-card max-w-md w-full rounded-3xl p-8 space-y-6 text-center border border-purple-500/40 shadow-2xl relative">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-purple-600 to-pink-500 mx-auto flex items-center justify-center text-white shadow-lg shadow-purple-500/30">
+                <i data-lucide="shield-check" class="w-8 h-8"></i>
+            </div>
+            
+            <div class="space-y-2">
+                <h3 class="text-2xl font-bold tracking-tight text-white">Вхід до дашборду</h3>
+                <p class="text-xs text-gray-400 leading-relaxed">Ця сторінка захищена політикою доступу Cloudflare. Будь ласка, авторизуйтесь через Google або Telegram.</p>
+            </div>
+
+            <div id="authErrorMsg" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-xs text-red-400 font-medium">
+                Обліковий запис не має прав адміністратора.
+            </div>
+
+            <!-- 1-Click OAuth Buttons -->
+            <div class="space-y-3 pt-2">
+                <!-- Google GIS Button -->
+                <div id="googleBtnContainer" class="flex justify-center min-h-[44px]">
+                    <div id="g_id_onload"
+                         data-client_id=""
+                         data-callback="handleDashboardGoogleAuth"
+                         data-auto_prompt="false">
+                    </div>
+                    <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_black" data-text="signin_with" data-size="large" data-logo_alignment="left" data-width="320"></div>
+                </div>
+
+                <!-- Telegram Login Button -->
+                <button onclick="startDashboardTelegramLogin()" id="tgLoginBtn" class="w-full py-3 px-4 bg-[#24A1DE] hover:bg-[#2092ca] text-white font-semibold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                    <span>Увійти через Telegram</span>
+                </button>
+
+                <!-- Telegram QR Box (if started on desktop) -->
+                <div id="tgQrBox" class="hidden p-4 rounded-2xl bg-gray-900 border border-gray-800 space-y-3">
+                    <p class="text-[11px] text-gray-400">Відскануйте QR-код або відкрийте бота:</p>
+                    <img id="tgQrImg" src="" class="w-36 h-36 mx-auto rounded-xl bg-white p-2">
+                    <a id="tgDirectLink" href="#" target="_blank" class="block text-xs text-purple-400 hover:underline">
+                        Відкрити @AuraStudioAiBot →
+                    </a>
+                </div>
+
+                <a href="/" class="block w-full py-2.5 text-gray-400 hover:text-white font-medium text-xs rounded-xl transition">
+                    ← Повернутися на головну
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/dashboard.js" defer></script>
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ("serviceWorker" in navigator) {
+            window.addEventListener("load", () => {
+                navigator.serviceWorker.register("/sw.js").catch(err => {
+                    console.warn("[SW] Registration skipped or failed:", err);
+                });
+            });
+        }
+    </script>
+    <!-- Cloudflare Web Analytics -->
+    <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "9b1187270a584e24a48898ed79014d89"}'></script>
+    <!-- End Cloudflare Web Analytics -->
+</body>
+</html>

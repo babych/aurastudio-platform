@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://aurastudio-ai.memory1024.workers.dev/sitemap.xml

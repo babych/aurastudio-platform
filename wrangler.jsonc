@@ -1,0 +1,38 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "aurastudio-ai",
+  "main": "src/worker.js",
+  "compatibility_date": "2024-11-01",
+  "assets": {
+    "directory": "web",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "aurastudio-prod-db",
+      "database_id": "a9e333ed-e98d-4477-92ae-d3d65ecd5b4c"
+    }
+  ],
+  // "r2_buckets": [
+  //   {
+  //     "binding": "STORAGE",
+  //     "bucket_name": "aurastudio-media"
+  //   }
+  // ],
+  "observability": {
+    "logs": {
+      "enabled": false,
+      "invocation_logs": true
+    }
+  },
+  "vars": {
+    "TELEGRAM_ONLY_PAYMENTS": "true",
+    "MODAL_ENDPOINT_URL": "https://dmytrobbch--qwen-image-edit-service-qweneditor-api-edit.modal.run",
+    "ENVIRONMENT": "production",
+    "ENABLE_QWEN_21": "true",
+    "MODAL_ENDPOINT_QWEN_21": "https://memory1024--qwen21-service-qwen21editor-api-edit.us-east.modal.run",
+    "TELEGRAM_BOT_USERNAME": "thing_intellect_bot",
+    "GOOGLE_CLIENT_ID": "1038318091306-55r5bhhp9di0ln64qg3otj0hjqk4hg29.apps.googleusercontent.com"
+  }
+}
